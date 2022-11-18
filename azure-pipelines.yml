@@ -1,15 +1,65 @@
-# Azure Databricks Build Pipeline
-# azure-pipelines.yml
+# azure databricks pipeline
 
 trigger:
 - main
 
-pool:
-  vmImage: 'ubuntu-latest'
+variables:  
+  # Agent VM image name
+  vmImageName: 'windows-2019'
 
-steps:
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: dbnotebooks'
-  inputs:
-    PathtoPublish: notebooks/samplenotebook.py
-    ArtifactName: dbnotebooks
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build and Push Stage
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: dbnotebooks'
+      inputs:
+        PathtoPublish: notebooks/samplenotebook.py
+        ArtifactName: dbnotebooks
+- stage: deploy
+  jobs:
+  - deployment: Release NoteBook in Databricks
+    continueOnError: false
+    environment: 'Dev'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                $fileName = "$(System.DefaultWorkingDirectory)/dbnotebooks/samplenotebook.py"
+                $newNotebookName = "ImportedNotebook"
+                # Get our secret from the variable
+                $Secret = "Bearer " + "$(Databricks)"
+                
+                # Set the URI of the workspace and the API endpoint
+                $Uri = "https://<your region>.azuredatabricks.net/api/2.0/workspace/import"
+                
+                # Open and import the notebook
+                $BinaryContents = [System.IO.File]::ReadAllBytes($fileName)
+                $EncodedContents = [System.Convert]::ToBase64String($BinaryContents)
+                
+                $Body = @{
+                    content = "$EncodedContents"
+                    language = "PYTHON"
+                    overwrite = $true
+                    format = "SOURCE"
+                    path= "/Users/<your user>/" + "$newNotebookName"
+                }
+                
+                #Convert body to JSON
+                $BodyText = $Body | ConvertTo-Json
+                
+                $headers = @{
+                    Authorization = $Secret
+                }
+                
+                Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $BodyText
+
