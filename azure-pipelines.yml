@@ -5,11 +5,11 @@ trigger:
 - main
 
 pool:
-  name: Hosted Ubuntu 1604
+  name: windows-2019
 
 steps:
 - task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: dbnotebooks'
   inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
+    PathtoPublish: notebooks/samplenotebook.py
+    ArtifactName: dbnotebooks
