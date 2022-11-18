@@ -23,7 +23,7 @@ stages:
         ArtifactName: dbnotebooks
 - stage: deploy
   jobs:
-  - deployment: Release NoteBook in Databricks
+  - deployment: Release_NoteBook
     continueOnError: false
     environment: 'Dev'
     strategy:
